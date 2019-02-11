@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "outDir": "./dist",
+    "removeComments": true,
+    "strict": true,
+    "rootDir": "src",
+    "sourceMap": true,
+    "sourceRoot": "./src",
+    "declaration": true,
+    "target": "es5",
+    "lib": [
+      "esnext",
+      "dom"
+    ]
+  },
+  "exclude": [
+    "node_modules",
+    "tests"
+  ]
+}

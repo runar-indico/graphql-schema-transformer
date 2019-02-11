@@ -1,0 +1,86 @@
+{
+  "linterOptions": {
+  },
+  "extends": [
+    "tslint:recommended",
+    "tslint-consistent-codestyle"
+  ],
+  "rules": {
+    "no-unused": {
+      "severity": "warning"
+    },
+    "class-name": true,
+    "curly": true,
+    "eofline": false,
+    "forin": true,
+    "missing-jsdoc": false,
+    "label-position": true,
+    "max-line-length": [
+      true,
+      120
+    ],
+    "no-arg": true,
+    "interface-name": false,
+    "no-bitwise": true,
+    "no-console": false,
+    "no-construct": true,
+    "no-constructor-vars": false,
+    "no-debugger": true,
+    "arrow-parens": true,
+    "no-duplicate-variable": true,
+    "no-empty": true,
+    "no-eval": true,
+    "no-string-literal": true,
+    "no-switch-case-fall-through": true,
+    "no-trailing-whitespace": true,
+    "no-unused-expression": true,
+    "object-literal-sort-keys": [true, "ignore-case", "shorthand-first"],
+    "no-var-requires": false,
+    "no-require-imports": false,
+    "one-line": [
+      true,
+      "check-open-brace",
+      "check-catch",
+      "check-else",
+      "check-whitespace"
+    ],
+    "quotemark": [
+      true,
+      "single"
+    ],
+    "semicolon": [
+      true,
+      "never"
+    ],
+    "indent": [
+      true,
+      "spaces",
+      2
+    ],
+    "triple-equals": [
+      true,
+      "allow-null-check"
+    ],
+    "typedef": [
+      true,
+      "callSignature",
+      "indexSignature",
+      "parameter",
+      "propertySignature",
+      "variableDeclarator",
+      "memberVariableDeclarator"
+    ],
+    "variable-name": [
+      true,
+      "allow-leading-underscore"
+    ],
+    "whitespace": [
+      true,
+      "check-branch",
+      "check-decl",
+      "check-operator",
+      "check-separator",
+      "check-type"
+    ]
+  }
+}
