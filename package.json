@@ -1,0 +1,31 @@
+{
+  "name": "graphql-schema-transformer",
+  "version": "0.1.1",
+  "description": "Transform pregenerated graphql-schemas",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/runar-indico/graphql-schema-transformer"
+  },
+  "author": "Runar Kristoffersen <runar@indicosys.com>",
+  "license": "MIT",
+  "scripts": {
+    "prepare": "yarn run build",
+    "start": "ts-node-dev src/cindex.ts",
+    "build": "rm -rf dist && tsc"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "dependencies": {
+    "@types/node": "^10.12.24",
+    "chalk": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/chalk": "^2.2.0",
+    "ts-node": "^8.0.2",
+    "ts-node-dev": "^1.0.0-pre.32",
+    "typescript": "^3.2.4"
+  }
+}
