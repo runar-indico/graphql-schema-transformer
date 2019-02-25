@@ -96,7 +96,12 @@ export interface IFilter {
   }
 }
 
-const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] = []) =>
+const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] = [], { info }: {
+  info: {
+    remove?: boolean,
+    match?: boolean
+  }} = {info: {}}
+) =>
   parse(schemaPath)
     .then(
       ({ header, schema, scalars }) => {
@@ -126,7 +131,7 @@ const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] =
                     const fieldSplitted = fieldLine.match(/(\w*):\s(\w*)/)
                     const [_, lineName, lineDef] = fieldSplitted || ['', '', '']
                     const match = fieldTest(fieldName, lineName, except) || fieldTest(line, fieldLine, except)
-                    console.log('match', match, fieldName, lineName, line, fieldLine)
+                    info.match && console.log('match', match, fieldName, lineName, line, fieldLine)
                     if (!match) {
                       return fieldLine
                     }
@@ -156,7 +161,7 @@ const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] =
                       name: typeName,
                     })
                     : (fieldTest(fieldName, lineName, except) || fieldTest(line, fieldLine, except))
-                  if (remove !== !!invert) {
+                  if (remove !== !!invert && info.remove) {
                     console.info(`Removed ${fieldLine.trim()} from ${typeName} (${schemaType})`)
                     console.debug(filter)
                   }

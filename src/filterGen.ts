@@ -12,12 +12,16 @@ export const filterGen = (
     ...s,
   }))
 
-
-export const typeDescriptions = (descriptions: {
+type ITransform = {
   [s in Types]?: {
-    [s: string]: {[s: string]: string}
+    [s: string]: { [s: string]: string }
   }
-}) => Object.keys(descriptions).reduce(
+}
+
+export const transformer = (
+  descriptions: ITransform,
+  transformField: (s: string) => IFilter["transformField"]
+) => Object.keys(descriptions).reduce(
   (r, key) => {
     const typeNames = descriptions[key]
     for (const typeName of Object.keys(typeNames)) {
@@ -27,9 +31,7 @@ export const typeDescriptions = (descriptions: {
           type: key as any,
           name: typeName,
           fieldName,
-          transformField: {
-            prepend: `  """${fieldNames[fieldName]}"""`,
-          },
+          transformField: transformField(fieldNames[fieldName])
         })
 
       }
@@ -39,3 +41,13 @@ export const typeDescriptions = (descriptions: {
   },
   [] as IFilter[],
 )
+
+export const typeDescriptions = (
+  descriptions: ITransform) => transformer(descriptions, (s) => ({
+    prepend: `  """${s}"""`,
+  }))
+
+export const fieldDirectives = (
+  descriptions: ITransform) => transformer(descriptions, (s) => ({
+    custom: ({ line }) => `${line} ${s}`,
+  }))
