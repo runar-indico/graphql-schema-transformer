@@ -177,6 +177,8 @@ const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] =
                 .join('\n')}\n}`
           }
         }
+        // Remove any empty inputs
+        output = output.replace(/input\s*\w*\s*{\s*}/, '')
         if (fs.existsSync(out)) {
           bkFile = path.join(out, '..', '.bk.' + path.basename(out))
           fs.copyFileSync(out, bkFile)
