@@ -1,6 +1,6 @@
 {
   "name": "graphql-schema-transformer",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Transform pregenerated graphql-schemas",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -35,11 +35,22 @@ const parse = (file: string) => new Promise<{ scalars: string[], header: string[
     })
 
     let current = resetCurrent()
+    let seenNonComment = false
     lineReader.on('line', (line: string) => {
-      if (line.startsWith('#')) {
-        header.push(line)
+      if (!line.trim()) {
+        // Remove blank lines
         return
       }
+      if (line.startsWith('#')) {
+        if (!seenNonComment) {
+          // Just random generated comments at top.
+          return
+        }
+        // current.description.push(line.replace('#', '"""') + '"""')
+        current.description.push(line)
+        return
+      }
+      seenNonComment = true
       if (line.startsWith('scalar')) {
         scalars.push(line)
         // return
@@ -54,7 +65,9 @@ const parse = (file: string) => new Promise<{ scalars: string[], header: string[
           return
         }
       }
-      if (line.search('}') > -1) {
+      const endCurly = line.search('}')
+      const comment = line.search('#')
+      if (endCurly > -1 && (comment === -1 || endCurly < comment)) {
         const { type, name } = current
         if (!type) {
           return
@@ -80,7 +93,7 @@ const parse = (file: string) => new Promise<{ scalars: string[], header: string[
 export type IFilterable = string | RegExp | string[]
 
 export interface IFilter {
-  custom?: (a: { line: string, name: string, type?: string, lineName: string, lineDef: string }) => boolean
+  custom?: (a: { line: string, name: string, type?: string, lineName: string, lineDef: string }) => boolean | string
   line?: IFilterable
   fieldName?: IFilterable
   type?: 'input' | 'type'
@@ -88,6 +101,7 @@ export interface IFilter {
   name?: IFilterable
   except?: IFilterable
   exceptName?: IFilterable
+  nodeDescription?: string
   add?: string
   transformField?: {
     prepend?: string,
@@ -96,22 +110,41 @@ export interface IFilter {
   }
 }
 
-const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] = [], { info }: {
-  info: {
-    remove?: boolean,
-    match?: boolean
-  }} = {info: {}}
+
+const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[], { descriptions, removeCommaInDescription = true }: {
+  /**
+ * [type/input/enum].[nodeName].[fieldName]: string
+ * Example:
+```
+descriptions: {
+  type: {
+    album: {
+      name: 'The name of the album',
+    }
+  }
+}
+```
+ */
+  descriptions: {
+    [s: string]: { [s: string]: { [s: string]: string } }
+  },
+  removeCommaInDescription?: boolean
+}
 ) =>
   parse(schemaPath)
     .then(
-      ({ header, schema, scalars }) => {
+      ({ schema }) => {
         let bkFile = ''
+        const formatDescription = (desc: string) => {
+          const stripped = removeCommaInDescription ? desc.replace(/,/g, '') : desc
+          return `""" ${stripped}"""`
+        }
         const schemaTypes = Object.keys(schema)
-        let output = [...header, ...scalars].join('\n')
+        let output = ''
         for (const schemaType of schemaTypes) {
           const typeNames = schema[schemaType]
           for (const typeName of Object.keys(typeNames)) {
-            const { description, fields, rest } = typeNames[typeName]
+            let { description, fields, rest } = typeNames[typeName]
             const addition: string[] = []
             let filteredFields = fields
             for (const filter of fieldFilters) {
@@ -122,6 +155,7 @@ const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] =
               if (name && !fieldTest(name, typeName, exceptName)) {
                 continue
               }
+
               if (add) {
                 addition.push(add)
               }
@@ -131,11 +165,10 @@ const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] =
                     const fieldSplitted = fieldLine.match(/(\w*):\s(\w*)/)
                     const [_, lineName, lineDef] = fieldSplitted || ['', '', '']
                     const match = fieldTest(fieldName, lineName, except) || fieldTest(line, fieldLine, except)
-                    info.match && console.log('match', match, fieldName, lineName, line, fieldLine)
                     if (!match) {
                       return fieldLine
                     }
-                    const {prepend, append, custom: customTransform} = transformField
+                    const { prepend, append, custom: customTransform } = transformField
                     if (customTransform) {
                       return customTransform({
                         lineDef,
@@ -161,19 +194,52 @@ const filterSchema = (schemaPath: string, out: string, fieldFilters: IFilter[] =
                       name: typeName,
                     })
                     : (fieldTest(fieldName, lineName, except) || fieldTest(line, fieldLine, except))
-                  if (remove !== !!invert && info.remove) {
-                    console.info(`Removed ${fieldLine.trim()} from ${typeName} (${schemaType})`)
-                    console.debug(filter)
-                  }
                   return remove === !!invert
                 })
               }
             }
+            let previous = ''
+            let openBrace = false
+
+            const nodeDescriptions = descriptions && descriptions[schemaType] && descriptions[schemaType][typeName]
+            const reducedFields = filteredFields.reduce(
+              (r, line) => {
+                const trimmed = line.trim()
+                // Turn comments into descriptions, since graphql-codegen for some reason
+                // does the opposite.
+                if (trimmed.startsWith('#')) {
+                  previous = '  ' + formatDescription(trimmed.replace('#', ''))
+                  r.push(previous)
+                  return r
+                }
+                const match = trimmed.match(/^(\w*)([\:(])/)
+                const [_, firstWord, colonBrace] = match || ['', '', '']
+                if (colonBrace === '(') {
+                  openBrace = true
+                }
+                if (openBrace && line.search(/\):\s/) > -1) {
+                  openBrace = false
+                }
+                if (!openBrace && !!nodeDescriptions && !!nodeDescriptions[firstWord]) {
+                  previous = "  " + formatDescription(nodeDescriptions[firstWord]) + '\n' + line
+                  r.push(previous)
+                  return r
+                }
+                previous = line
+                r.push(previous)
+                return r
+              }, [] as string[])
             // tslint:disable-next-line
+            const nodeDescription = nodeDescriptions && nodeDescriptions['__node']
+            if (nodeDescription) {
+              description = [formatDescription(nodeDescription)]
+            }
             output += `\n${
-              description.join('\n')}\n${
+              description
+                .filter(Boolean)
+                .join('\n')}\n${
               schemaType} ${typeName} ${rest} {\n${
-              [...addition, ...filteredFields]
+              [...addition, ...reducedFields]
                 .join('\n')}\n}`
           }
         }
